@@ -1,0 +1,26 @@
+{
+  "preset": "ts-jest",
+  "rootDir": ".",
+  "testMatch": [
+    "<rootDir>/src/**/(*.)spec.(ts|js)"
+  ],
+  "moduleFileExtensions": [
+    "ts",
+    "js",
+    "json"
+  ],
+  "testEnvironment": "node",
+  "moduleDirectories": [
+    "node_modules",
+    "src"
+  ],
+  "transformIgnorePatterns": [
+    "<rootDir>/node_modules/(?!(ol|lodash-es)/).+\\.js$"
+  ],
+  "transform": {
+    "^.+\\.(js|jsx|mjs)$": "babel-jest"
+  },
+  "setupFilesAfterEnv": [
+    "<rootDir>/setup-jest.js"
+  ]
+}
