@@ -1,4 +1,4 @@
-import crypto from 'crypto';
+import * as crypto from 'crypto';
 import { isExpressionStatement, isProgram } from '@babel/types';
 import { NodePath } from '@babel/core';
 import generate from '@babel/generator';
@@ -49,7 +49,7 @@ export const isConfigMapOption = (option: any): option is ConfigOption => {
  * @param pathMap
  * @returns {*}
  */
-export const resolveClassFile = (className: string, pathMap: LoaderOptions['paths']) => {
+export const resolveClassFile = (className: string, pathMap: LoaderOptions['paths'], debug?: boolean) => {
   let retVal: string[] = [];
 
   for (const prefix in pathMap) {
@@ -59,27 +59,29 @@ export const resolveClassFile = (className: string, pathMap: LoaderOptions['path
     if (className.match(re)) {
       if (pathOption === false) {
         retVal = [];
-      } else if (isPathOption(pathOption)) {
-        if (pathOption.query) {
-          const classes = pathOption.query(className);
-          if (Array.isArray(classes)) {
-            retVal = classes.map((className) => {
-              return className.src;
-            });
-          }
+      } else if (isPathOption(pathOption) && pathOption.query) {
+        const classes = pathOption.query(className);
+        if (Array.isArray(classes)) {
+          retVal = classes.map((className) => {
+            return className.src;
+          });
+        } else {
+          debug && console.log(prefix, className);
         }
-      } else {
+      } else if (typeof pathOption === 'string') {
         retVal = [prefix.replace(prefix, pathOption) + className.replace(prefix, '').replace(/\./g, '/') + '.js'];
       }
+      break;
     }
   }
 
   return retVal.filter(Boolean);
 };
 
+
 export function addRequire(className: string, prefix: string, pathMap: LoaderOptions['paths'], debug?: boolean) {
   if (className.indexOf('.') > 0 || prefix !== '' || className === 'Ext') {
-    var fileToRequire = resolveClassFile(((className.indexOf('.') > 0) ? '' : prefix) + className, pathMap);
+    const fileToRequire = resolveClassFile(((className.indexOf('.') > 0) ? '' : prefix) + className, pathMap, debug);
     if (fileToRequire.length > 0) {
       let reqStr = '';
       fileToRequire.forEach((req) => {
@@ -90,7 +92,7 @@ export function addRequire(className: string, prefix: string, pathMap: LoaderOpt
         if (typeof req === 'undefined') {
           console.log('%c Converting require: ' + className + ' => ' + req, 'color:red');
         }
-        reqStr += `require(${generate({ type: 'StringLiteral', value: req })});\r\n`;
+        reqStr += `require(${generate({ type: 'StringLiteral', value: req }).code});\r\n`;
       });
       return reqStr;
     }

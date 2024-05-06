@@ -25,12 +25,12 @@ if (!fs.existsSync(cacheDir)) {
   fs.mkdirSync(cacheDir);
 }
 
-export default function loader(this: webpack.LoaderContext<LoaderOptions>, content: string, sourceMap: SourceMap) {
+export function loader(this: webpack.LoaderContext<LoaderOptions>, content: string, sourceMap: SourceMap) {
   this.cacheable && this.cacheable();
 
   const callback = this.async();
 
-  const { paths, nameSpace } = this.getOptions();
+  const { paths, nameSpace, debug } = this.getOptions();
   const parsersMap: Record<string, ParserExt> = {};
 
   const configMap: Config = {
@@ -69,9 +69,9 @@ export default function loader(this: webpack.LoaderContext<LoaderOptions>, conte
   Promise.all(Object.keys(paths).map((map) => {
     const pathOption = paths[map];
 
-    if (!pathOption) {
+    if (!isPathOption(pathOption)) {
       return Promise.resolve();
-    } else if (isPathOption(pathOption)) {
+    } else {
       if (pathOption.use === undefined) {
         return Promise.resolve();
       } else if (isParseExt(pathOption.use)) {
@@ -133,17 +133,17 @@ export default function loader(this: webpack.LoaderContext<LoaderOptions>, conte
           const prefix: string = key in configMap && typeof configMap[key] === 'object' && (configMap[key] as ConfigOption).prefix || '';
 
           if (isStringLiteral(node.value)) {
-            requireStr += addRequire(node.value.value, prefix, paths);
+            requireStr += addRequire(node.value.value, prefix, paths, debug);
           } else if (isArrayExpression(node.value)) {
             node.value.elements.forEach((element) => {
               if (isStringLiteral(element)) {
-                requireStr += addRequire(element.value, prefix, paths);
+                requireStr += addRequire(element.value, prefix, paths, debug);
               }
             });
           } else if (isObjectExpression(node.value)) {
             node.value.properties.forEach((node) => {
               if (isStringLiteral(node)) {
-                requireStr += addRequire((node as StringLiteral).value, prefix, paths);
+                requireStr += addRequire((node as StringLiteral).value, prefix, paths, debug);
               }
             });
           }

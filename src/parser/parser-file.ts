@@ -12,10 +12,9 @@ import {
   isObjectProperty,
   isArrayExpression,
 } from '@babel/types';
-import { Block, parse as commentParse } from 'comment-parser';
+import { Block, Spec, parse as commentParse } from 'comment-parser';
 import { File, Tag } from './types';
 import { ParserTag } from './parser-tag';
-import { Spec } from 'comment-parser/src/primitives';
 
 const nameTags = ['define', 'class'];
 const requireTags = ['require', 'mixins'];
