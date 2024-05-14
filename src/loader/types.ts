@@ -34,10 +34,10 @@ export interface Updated {
 }
 
 export interface ConfigOption {
-  remove?: boolean;
-  allowObject?: boolean,
-  end?: boolean;
   prefix?: string;
+  remove?: boolean;
+  end?: boolean;
+  allowObject?: boolean,
 }
 
 export interface Config extends Record<string, boolean | ConfigOption> {

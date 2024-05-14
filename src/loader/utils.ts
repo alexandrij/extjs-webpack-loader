@@ -47,6 +47,7 @@ export const isConfigMapOption = (option: any): option is ConfigOption => {
  *
  * @param className
  * @param pathMap
+ * @param debug
  * @returns {*}
  */
 export const resolveClassFile = (className: string, pathMap: LoaderOptions['paths'], debug?: boolean) => {
@@ -61,15 +62,13 @@ export const resolveClassFile = (className: string, pathMap: LoaderOptions['path
         retVal = [];
       } else if (isPathOption(pathOption) && pathOption.query) {
         const classes = pathOption.query(className);
-        if (Array.isArray(classes)) {
-          retVal = classes.map((className) => {
-            return className.src;
-          });
-        } else {
-          debug && console.log(prefix, className);
-        }
+        retVal = classes.map((className) => {
+          return className.src;
+        });
       } else if (typeof pathOption === 'string') {
         retVal = [prefix.replace(prefix, pathOption) + className.replace(prefix, '').replace(/\./g, '/') + '.js'];
+      } else {
+        debug && console.log('%cno resolved class file:', 'color:yellow', `prefix: ${prefix}; className: ${className}`);
       }
       break;
     }
@@ -86,11 +85,11 @@ export function addRequire(className: string, prefix: string, pathMap: LoaderOpt
       let reqStr = '';
       fileToRequire.forEach((req) => {
         if (debug) {
-          console.log('%c Converting require: ' + className + ' => ' + req, 'color:green');
+          console.log('\x1b[32mConverting require:', `\x1b[0m${className} => ${req}`);
         }
 
         if (typeof req === 'undefined') {
-          console.log('%c Converting require: ' + className + ' => ' + req, 'color:red');
+          console.log('\x1b[31mConverting require:', `\x1b[0m${className} => ${req}`);
         }
         reqStr += `require(${generate({ type: 'StringLiteral', value: req }).code});\r\n`;
       });

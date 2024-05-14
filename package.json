@@ -1,6 +1,6 @@
 {
   "name": "extjs-webpack-loader",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "homepage": "https://github.com/alexandrij/extjs-webpack-loader",
   "description": "Загрузчик Webpack для ExtJS - фреймворка",
   "keywords": [

@@ -1,9 +1,12 @@
 import type * as webpack from 'webpack';
 import { traverse } from '@babel/core';
 import {
-  isArrayExpression, isIdentifier, isObjectExpression, isObjectProperty,
+  isArrayExpression,
+  isIdentifier,
+  isObjectExpression,
+  isObjectProperty,
+  isProperty,
   isStringLiteral,
-  StringLiteral,
 } from '@babel/types';
 import { parse } from '@babel/parser';
 import generate from '@babel/generator';
@@ -115,7 +118,7 @@ export function loader(this: webpack.LoaderContext<LoaderOptions>, content: stri
     }
 
     return Promise.all(promises).then((results) => {
-      const requiresStr = results.flat(1).join('\n');
+      const requiresStr = results.flat(1).filter((str) => str.length > 0).join('\n');
       updates.push({ type: 'add', start: 0, end: 0, data: requiresStr });
 
       return updates;
@@ -127,10 +130,11 @@ export function loader(this: webpack.LoaderContext<LoaderOptions>, content: stri
         const node = path.node;
         let requireStr = '';
 
-        if (node && isObjectProperty(node) && isIdentifier(node.key) && properties.includes(node.key.name)) {
+        if (isProperty(node) && isIdentifier(node.key) && properties.includes(node.key.name)) {
           const nodeName = node.key.name;
           const key = nodeName as keyof Config;
-          const prefix: string = key in configMap && typeof configMap[key] === 'object' && (configMap[key] as ConfigOption).prefix || '';
+          const config = configMap[key];
+          const prefix: string = isConfigMapOption(config) && config.prefix || '';
 
           if (isStringLiteral(node.value)) {
             requireStr += addRequire(node.value.value, prefix, paths, debug);
@@ -140,32 +144,29 @@ export function loader(this: webpack.LoaderContext<LoaderOptions>, content: stri
                 requireStr += addRequire(element.value, prefix, paths, debug);
               }
             });
-          } else if (isObjectExpression(node.value)) {
+          } else if (isObjectExpression(node.value) && isConfigMapOption(config) && config.allowObject) {
             node.value.properties.forEach((node) => {
-              if (isStringLiteral(node)) {
-                requireStr += addRequire((node as StringLiteral).value, prefix, paths, debug);
+              if (isObjectProperty(node) && isStringLiteral(node.value)) {
+                requireStr += addRequire(node.value.value, prefix, paths, debug);
               }
             });
           }
 
           if (requireStr.length > 0) {
             const parent = findParentExpression(path);
+            const configOption: ConfigOption = isConfigMapOption(config) ? config : {};
 
-            if (isConfigMapOption(configMap[nodeName])) {
-              const configOption = configMap[nodeName] as ConfigOption;
+            if (configOption.remove && node.range) {
+              updates.push({ type: 'remove', start: node.range[0], end: node.range[1] });
+            }
 
-              if (configOption.remove && node.range) {
-                updates.push({ type: 'remove', start: node.range[0], end: node.range[1] });
-              }
-
-              if (parent?.node?.range) {
-                updates.push({
-                  type: 'add',
-                  start: parent.node.range[configOption.end ? 1 : 0],
-                  end: parent.node.range[configOption.end ? 1 : 0],
-                  data: requireStr,
-                });
-              }
+            if (parent && parent.node && parent.node.range) {
+              updates.push({
+                type: 'add',
+                start: parent.node.range[configOption?.end ? 1 : 0],
+                end: parent.node.range[configOption.end ? 1 : 0],
+                data: requireStr,
+              });
             }
           }
         }
@@ -203,7 +204,7 @@ export function loader(this: webpack.LoaderContext<LoaderOptions>, content: stri
       fs.writeFileSync(cacheFile, content);
       callback(null, content, sourceMap);
     } catch (e) {
-      console.error(`%cError parsing ${this.resourcePath}` + e, 'color: red');
+      console.error(`\x1b[31mError parsing ${this.resourcePath}`, e);
       // @ts-ignore
       callback(e);
     }
